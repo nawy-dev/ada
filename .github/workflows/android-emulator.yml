@@ -77,3 +77,26 @@ jobs:
         with:
           name: emulator-out-${{ matrix.api }}
           path: emulator-out
+
+  # Screenshots mode only: also put the pictures on a branch of their own, so they can be fetched
+  # with git (artifact downloads are blocked in some environments). No workflow runs for it.
+  publish-screenshots:
+    if: ${{ inputs.mode == 'screenshots' }}
+    needs: emulator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: emulator-out-35
+          path: shots
+      - name: Publish to the play-screenshots branch
+        working-directory: shots
+        run: |
+          git init -q -b play-screenshots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*.png'
+          git commit -q -m "Google Play screenshots from run ${{ github.run_id }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" play-screenshots
