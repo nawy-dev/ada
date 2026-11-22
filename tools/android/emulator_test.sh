@@ -6,10 +6,23 @@ set -u
 PKG=ada.nawy.app
 APK=${1:?apk path}
 OUT=${2:-emulator-out}
+MODE=${3:-e2e} # e2e = reminder checks; screenshots = Google Play screenshots
 mkdir -p "$OUT"
 
 adb install -r "$APK" || exit 1
 adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS || true
+if [ "$MODE" = screenshots ]; then
+  # A common phone shape (1080x1920 is 16:9, which Play accepts) and a clean status bar.
+  adb shell wm size 1080x1920
+  adb shell wm density 420
+  adb shell settings put global sysui_demo_allowed 1
+  demo() { adb shell am broadcast -a com.android.systemui.demo -e command "$@" > /dev/null || true; }
+  demo enter
+  demo clock -e hhmm 0941
+  demo battery -e level 100 -e plugged false
+  demo network -e wifi show -e level 4
+  demo notifications -e visible false
+fi
 adb logcat -c
 adb shell am start -n $PKG/.MainActivity
 sleep 12
@@ -17,6 +30,10 @@ PID=$(adb shell pidof $PKG | tr -d '\r')
 echo "app pid: $PID"
 adb forward tcp:9222 localabstract:webview_devtools_remote_"$PID"
 
+if [ "$MODE" = screenshots ]; then
+  node tools/android/screenshots.mjs "$OUT"
+  exit $?
+fi
 node tools/android/emulator_test.mjs "$OUT"
 STATUS=$?
 

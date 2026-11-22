@@ -5,6 +5,12 @@ name: android-emulator
 # scheduling path, not battery-saver behaviour of specific phone makers. See docs/ANDROID.md.
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'e2e = check reminders; screenshots = take the Google Play screenshots'
+        type: choice
+        options: [e2e, screenshots]
+        default: e2e
 
 permissions:
   contents: read
@@ -65,7 +71,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: bash tools/android/emulator_test.sh android/app/build/outputs/apk/debug/app-debug.apk emulator-out
+          script: bash tools/android/emulator_test.sh android/app/build/outputs/apk/debug/app-debug.apk emulator-out ${{ inputs.mode || 'e2e' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
