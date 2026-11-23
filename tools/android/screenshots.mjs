@@ -27,8 +27,14 @@ await new Promise((res, rej) => {
 });
 let id = 0;
 const pending = new Map();
+const consoleLines = [];
 ws.onmessage = (m) => {
   const msg = JSON.parse(m.data);
+  if (msg.method === "Runtime.consoleAPICalled" && ["warning", "error"].includes(msg.params.type)) {
+    consoleLines.push(
+      `${msg.params.type}: ${msg.params.args.map((a) => a.value ?? a.description).join(" ")}`,
+    );
+  }
   if (msg.id && pending.has(msg.id)) {
     pending.get(msg.id)(msg);
     pending.delete(msg.id);
@@ -254,6 +260,26 @@ const storageCard = await ev(`${HELPERS} return !!byText('h2', 'حماية ال�
 check("no browser storage card inside the app", storageCard === false);
 
 // 8) The bars around the page, in every light/dark combination.
+log("user agent:", await ev(`return navigator.userAgent;`));
+const probe = await ev(`try {
+  await window.Capacitor.Plugins.AdaSystemBars.setColors({ color: '#FF0000' });
+  return 'resolved';
+} catch (e) { return 'rejected: ' + (e?.message ?? e); }`);
+await sleep(1500);
+const red = rawScreen();
+log(
+  "probe (plugin asked for red):",
+  probe,
+  "top",
+  red.at(540, 6),
+  "bottom",
+  red.at(40, red.height - 6),
+);
+for (const line of consoleLines) log("page console:", line);
+log(sh("adb logcat -d | grep -iE 'AdaSystemBars|Capacitor/|SystemBars' | tail -25"));
+await ev(
+  `document.documentElement.classList.toggle('dark'); document.documentElement.classList.toggle('dark'); return 1;`,
+);
 const BG = `const c = document.createElement('canvas').getContext('2d');
   c.fillStyle = getComputedStyle(document.body).backgroundColor; c.fillRect(0, 0, 1, 1);
   return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3);`;
@@ -306,10 +332,18 @@ await ev(
   `${HELPERS} go('/'); await waitFor(() => q('button[aria-label="إضافة عادة"]')); await wait(500); return 1;`,
 );
 await ev(
-  `${HELPERS} q('button[aria-label="إضافة عادة"]').click(); await waitFor(() => q('#habit-name')); q('#habit-name').focus(); return 1;`,
+  `${HELPERS} q('button[aria-label="إضافة عادة"]').click(); await waitFor(() => q('#habit-name')); await wait(600); return 1;`,
 );
+// A real touch on the field, like a person's: focusing from script does not open the keyboard.
+const field = await ev(`const r = document.querySelector('#habit-name').getBoundingClientRect();
+  return { x: (r.left + r.width / 2) * devicePixelRatio, y: (r.top + r.height / 2) * devicePixelRatio };`);
+sh(`adb shell input tap ${Math.round(field.x)} ${Math.round(field.y) + 63}`); // 63 px = status bar
 await sleep(2500);
-const ime = sh("adb shell dumpsys input_method").includes("mInputShown=true");
+const imeDump = sh(
+  "adb shell dumpsys input_method | grep -E 'mInputShown|isInputViewShown|mImeWindowVis' | head -5",
+);
+log("input method:", imeDump.trim().replace(/\s+/g, " "));
+const ime = /mInputShown=true|isInputViewShown=true/.test(imeDump);
 const keyboard = await ev(`${HELPERS}
   const add = byText('button', 'إضافة العادة');
   const r = add?.getBoundingClientRect();

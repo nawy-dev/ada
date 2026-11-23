@@ -44,6 +44,14 @@ jobs:
           cp -r tools/android/res/. "$res/"
       - name: Reminder permissions
         run: python3 tools/android/patch_manifest.py android/app/src/main/AndroidManifest.xml
+      - name: TEMPORARY diagnostics - how Capacitor paints the bars
+        run: |
+          grep '"version"' node_modules/@capacitor/core/package.json node_modules/@capacitor/android/package.json
+          echo "=== styles.xml"; cat android/app/src/main/res/values/styles.xml
+          echo "=== MainActivity before patch"; cat android/app/src/main/java/ada/nawy/app/MainActivity.java
+          echo "=== SystemBars.java"; cat node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java
+          echo "=== who sets backgrounds"
+          grep -rnE "setBackground|setStatusBarColor|setNavigationBarColor|setDecorFitsSystemWindows|setOnApplyWindowInsetsListener" node_modules/@capacitor/android/capacitor/src/main/java | head -40
       - name: Add the system bars plugin
         run: python3 tools/android/patch_activity.py android tools/android/java/AdaSystemBarsPlugin.java
       - name: Show the SDK levels Capacitor generated (Play needs target 36 or higher)
