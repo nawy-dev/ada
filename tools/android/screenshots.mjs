@@ -268,35 +268,22 @@ const storageCard = await ev(`${HELPERS} return !!byText('h2', 'حماية ال�
 check("no browser storage card inside the app", storageCard === false);
 
 // 8) The bars around the page, in every light/dark combination.
-log("user agent:", await ev(`return navigator.userAgent;`));
-const probe = await ev(`try {
-  await window.Capacitor.Plugins.AdaSystemBars.setColors({ color: '#FF0000' });
-  return 'resolved';
-} catch (e) { return 'rejected: ' + (e?.message ?? e); }`);
-await sleep(1500);
-const red = rawScreen();
-log(
-  "probe (plugin asked for red):",
-  probe,
-  "top",
-  red.at(540, 6),
-  "bottom",
-  red.at(40, red.height - 6),
-);
-for (const line of consoleLines) log("page console:", line);
-log(sh("adb logcat -d | grep -iE 'AdaSystemBars|Capacitor/|SystemBars' | tail -25"));
 const BG = `const c = document.createElement('canvas').getContext('2d');
   c.fillStyle = getComputedStyle(document.body).backgroundColor; c.fillRect(0, 0, 1, 1);
   return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3);`;
 const inAppChoices = { system: "حسب الجهاز", light: "نهاري", dark: "ليلي" };
 for (const systemDark of [false, true]) {
   for (const [choice, label] of Object.entries(inAppChoices)) {
+    sh("adb logcat -c");
     sh(`adb shell cmd uimode night ${systemDark ? "yes" : "no"}`);
     await sleep(2000);
     await ev(
       `${HELPERS} byText('button', ${JSON.stringify(label)})?.click(); await wait(300); return 1;`,
     );
     await sleep(1800); // the colour is sent to the phone after the page repaints
+    log(
+      `step log: ${sh("adb logcat -d -s AdaSystemBars:D | tail -4").trim().replace(/\s+/g, " ")}`,
+    );
     const wantDark = choice === "dark" || (choice === "system" && systemDark);
     const isDark = await ev(`return document.documentElement.classList.contains('dark');`);
     const page = await ev(BG);
@@ -330,6 +317,29 @@ for (const systemDark of [false, true]) {
 await ev(`${HELPERS} byText('button', 'حسب الجهاز')?.click(); await wait(300); return 1;`);
 sh("adb shell cmd uimode night no");
 await sleep(2000);
+
+// The plugin answers a direct call too (a red bar is easy to see in the picture).
+log("user agent:", await ev(`return navigator.userAgent;`));
+const probe = await ev(`try {
+  await window.Capacitor.Plugins.AdaSystemBars.setColors({ color: '#FF0000' });
+  return 'resolved';
+} catch (e) { return 'rejected: ' + (e?.message ?? e); }`);
+await sleep(1500);
+const red = rawScreen();
+log(
+  "probe (plugin asked for red):",
+  probe,
+  "top",
+  red.at(540, 6),
+  "bottom",
+  red.at(40, red.height - 6),
+);
+for (const line of consoleLines) log("page console:", line);
+log(sh("adb logcat -d | grep -iE 'AdaSystemBars|Capacitor/|SystemBars' | tail -25"));
+
+await ev(
+  `await window.Capacitor.Plugins.AdaSystemBars.setColors({ color: '#F7F8FA', lightBackground: true }); return 1;`,
+);
 
 // 9) The on-screen keyboard must not cover the add button.
 sh("adb shell settings put secure show_ime_with_hard_keyboard 1");

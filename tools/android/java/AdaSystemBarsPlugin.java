@@ -3,6 +3,7 @@ package ada.nawy.app;
 import android.app.Activity;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.util.Log;
 import android.os.Build;
 import android.view.Window;
 
@@ -47,6 +48,7 @@ public class AdaSystemBarsPlugin extends Plugin {
             return;
         }
         final boolean light = Boolean.TRUE.equals(call.getBoolean("lightBackground", false));
+        Log.d("AdaSystemBars", "setColors " + hex + " light=" + light);
         getActivity().runOnUiThread(() -> {
             color = parsed;
             lightBackground = light;
@@ -59,6 +61,7 @@ public class AdaSystemBarsPlugin extends Plugin {
     @Override
     protected void handleOnConfigurationChanged(Configuration newConfig) {
         super.handleOnConfigurationChanged(newConfig);
+        Log.d("AdaSystemBars", "configuration changed, applying after Capacitor");
         // Capacitor's SystemBars restores the phone's colours in its own handler of this same
         // event. Posting runs ours after it.
         getActivity().getWindow().getDecorView().post(this::apply);
@@ -66,6 +69,7 @@ public class AdaSystemBarsPlugin extends Plugin {
 
     private void apply() {
         if (!applied) return;
+        Log.d("AdaSystemBars", "apply color=#" + Integer.toHexString(color) + " lightBackground=" + lightBackground);
         final Activity activity = getActivity();
         final Window window = activity.getWindow();
         // Android 15+ draws the app edge to edge, so the bars are see-through and show this.
