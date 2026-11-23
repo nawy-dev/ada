@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { isNativeApp } from "@/lib/native/platform";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -41,7 +42,8 @@ export function InstallAppButton() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
-    if (!isTopLevelProductionPage()) return;
+    // Inside the Android app it is already an app: there is nothing to install.
+    if (isNativeApp() || !isTopLevelProductionPage()) return;
     setCanShowButton(true);
 
     const markInstalled = () => {

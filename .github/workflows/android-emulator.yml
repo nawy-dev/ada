@@ -52,6 +52,8 @@ jobs:
           cp -r tools/android/res/. "$res/"
       - name: Reminder permissions
         run: python3 tools/android/patch_manifest.py android/app/src/main/AndroidManifest.xml
+      - name: Add the system bars plugin
+        run: python3 tools/android/patch_activity.py android tools/android/java/AdaSystemBarsPlugin.java
       - name: Copy the web app into it
         run: npx cap sync android
       - name: Use the fixed debug key
@@ -81,7 +83,7 @@ jobs:
   # Screenshots mode only: also put the pictures on a branch of their own, so they can be fetched
   # with git (artifact downloads are blocked in some environments). No workflow runs for it.
   publish-screenshots:
-    if: ${{ inputs.mode == 'screenshots' }}
+    if: ${{ !cancelled() && inputs.mode == 'screenshots' }}
     needs: emulator
     runs-on: ubuntu-latest
     permissions:

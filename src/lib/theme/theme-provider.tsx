@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
+import { syncSystemBars } from "@/lib/native/system-bars";
+
 import { ThemeContext, type ResolvedTheme, type ThemePreference } from "./theme-context";
 
 const STORAGE_KEY = "nawy-habit-theme";
@@ -29,6 +31,9 @@ function applyTheme(preference: ThemePreference) {
 
   const themeColor = resolved === "dark" ? "#121212" : "#F7F8FA";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
+
+  // Inside the Android app the bars around the page follow the chosen theme too (no-op elsewhere).
+  void syncSystemBars(resolved);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

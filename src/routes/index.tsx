@@ -27,6 +27,7 @@ import {
 } from "@/lib/db/habits-repo";
 import type { Habit } from "@/lib/db/schema";
 import { arabicFmt, num } from "@/lib/format/numbers";
+import { shareText } from "@/lib/native/share-text";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -128,28 +129,15 @@ function TodayPage() {
   }
 
   async function shareFromMenu(habit: Habit) {
-    const shareText = `ناوي ألتزم بـ «${habit.name}» باستخدام تطبيق عادة من ناوي.`;
-    const appUrl = "https://ada.nawy.app/";
-
     try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({
-          title: `عادة — ${habit.name}`,
-          text: shareText,
-          url: appUrl,
-        });
-        return;
-      }
-
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(`${shareText}\n${appUrl}`);
-        toast.success("نُسخت تفاصيل العادة للمشاركة");
-        return;
-      }
-
-      toast.error("المشاركة غير متاحة على هذا الجهاز");
+      const result = await shareText({
+        title: `عادة — ${habit.name}`,
+        text: `ناوي ألتزم بـ «${habit.name}» باستخدام تطبيق عادة من ناوي.`,
+        url: "https://ada.nawy.app/",
+      });
+      if (result === "copied") toast.success("نُسخت تفاصيل العادة للمشاركة");
+      else if (result === "unavailable") toast.error("المشاركة غير متاحة على هذا الجهاز");
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
       console.error(error);
       toast.error("تعذّرت مشاركة العادة");
     }

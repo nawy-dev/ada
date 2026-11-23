@@ -4,6 +4,12 @@
 // the page and restores it through Settings (the "restore from file" button), the same path a
 // person uses. That also proves restoring a file works inside the Android WebView. Then it walks
 // the main screens in light and dark mode and saves one PNG per screen into the output folder.
+//
+// It then runs checks that a person would notice at once but unit tests cannot see: the bars around
+// the page have the page's colour in every light/dark combination, the web-only controls (install
+// as an app, browser storage) are not shown inside the app, the Back button goes back, and the
+// on-screen keyboard does not cover the add button. Each check is logged as `CHECK ok|FAIL`, and
+// the run fails at the end if any failed, after saving every picture.
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -82,6 +88,29 @@ function pngSize(file) {
   const b = readFileSync(file);
   return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
 }
+
+const problems = [];
+/** Records a check; the run keeps going so every picture is still saved, and fails at the end. */
+function check(name, ok, detail = "") {
+  log(`CHECK ${ok ? "ok  " : "FAIL"} ${name}${detail ? ` (${detail})` : ""}`);
+  if (!ok) problems.push(name);
+}
+
+/** The screen as raw pixels. The header before them is 12 or 16 bytes depending on the Android. */
+function rawScreen() {
+  const buf = execSync("adb exec-out screencap", { maxBuffer: 128 * 1024 * 1024 });
+  const width = buf.readUInt32LE(0);
+  const height = buf.readUInt32LE(4);
+  const header = buf.length - width * height * 4;
+  const at = (x, y) => {
+    const i = header + (y * width + x) * 4;
+    return [buf[i], buf[i + 1], buf[i + 2]];
+  };
+  return { width, height, at };
+}
+
+const luma = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+const near = (a, b, tol = 6) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
 
 const shots = [];
 async function shot(name) {
@@ -172,6 +201,10 @@ const home = await ev(`${HELPERS}
   return { habits: document.querySelectorAll('a[href^="/habit/"]').length, ok: !!first };`);
 log("today screen:", JSON.stringify(home));
 if (!home?.ok || home.habits !== 6) fail(`expected 6 habits on Today, saw ${home?.habits}`);
+const installButton = await ev(
+  `return !!document.querySelector('button[aria-label="تثبيت ناوي كتطبيق"]');`,
+);
+check("no 'install as an app' button inside the app", installButton === false);
 await sleep(5000); // let the restore toast leave
 await shot("01-today-light");
 
@@ -204,13 +237,113 @@ await shot("03-habit-light");
 // 5) The same two screens in dark mode.
 await night(true);
 await shot("04-habit-dark");
-await ev(`${HELPERS} history.back(); await waitFor(() => q('a[href^="/habit/"]')); await wait(800); return 1;`);
+await ev(
+  `${HELPERS} history.back(); await waitFor(() => q('a[href^="/habit/"]')); await wait(800); return 1;`,
+);
 await shot("05-today-dark");
 
 // 6) Settings (backup and restore), light.
 await night(false);
-await ev(`${HELPERS} go('/settings'); await waitFor(() => byText('button', 'حفظ نسخة')); return 1;`);
+await ev(
+  `${HELPERS} go('/settings'); await waitFor(() => byText('button', 'حفظ نسخة')); return 1;`,
+);
 await shot("06-settings-light");
 
+// 7) Settings has no browser-only card inside the app.
+const storageCard = await ev(`${HELPERS} return !!byText('h2', 'حماية التخزين');`);
+check("no browser storage card inside the app", storageCard === false);
+
+// 8) The bars around the page, in every light/dark combination.
+const BG = `const c = document.createElement('canvas').getContext('2d');
+  c.fillStyle = getComputedStyle(document.body).backgroundColor; c.fillRect(0, 0, 1, 1);
+  return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3);`;
+const inAppChoices = { system: "حسب الجهاز", light: "نهاري", dark: "ليلي" };
+for (const systemDark of [false, true]) {
+  for (const [choice, label] of Object.entries(inAppChoices)) {
+    sh(`adb shell cmd uimode night ${systemDark ? "yes" : "no"}`);
+    await sleep(2000);
+    await ev(
+      `${HELPERS} byText('button', ${JSON.stringify(label)})?.click(); await wait(300); return 1;`,
+    );
+    await sleep(1800); // the colour is sent to the phone after the page repaints
+    const wantDark = choice === "dark" || (choice === "system" && systemDark);
+    const isDark = await ev(`return document.documentElement.classList.contains('dark');`);
+    const page = await ev(BG);
+    const screen = rawScreen();
+    const top = screen.at(540, 6);
+    const bottom = screen.at(40, screen.height - 6);
+    const name = `bars: phone ${systemDark ? "dark" : "light"}, app ${choice}`;
+    check(`${name} - page is ${wantDark ? "dark" : "light"}`, Boolean(isDark) === wantDark);
+    check(`${name} - status bar has the page colour`, near(top, page), `bar ${top} page ${page}`);
+    check(
+      `${name} - navigation bar has the page colour`,
+      near(bottom, page),
+      `bar ${bottom} page ${page}`,
+    );
+    // The clock sits at the left of the status bar: it must stand out from the bar behind it.
+    let strongest = 0;
+    for (let y = 16; y < 48; y += 2) {
+      for (let x = 30; x < 120; x += 2) {
+        strongest = Math.max(strongest, Math.abs(luma(screen.at(x, y)) - luma(page)));
+      }
+    }
+    check(
+      `${name} - status bar icons are readable`,
+      strongest > 100,
+      `contrast ${strongest.toFixed(0)}`,
+    );
+    if (systemDark !== wantDark)
+      await shot(`07-bars-phone-${systemDark ? "dark" : "light"}-app-${choice}`);
+  }
+}
+await ev(`${HELPERS} byText('button', 'حسب الجهاز')?.click(); await wait(300); return 1;`);
+sh("adb shell cmd uimode night no");
+await sleep(2000);
+
+// 9) The on-screen keyboard must not cover the add button.
+sh("adb shell settings put secure show_ime_with_hard_keyboard 1");
+await ev(
+  `${HELPERS} go('/'); await waitFor(() => q('button[aria-label="إضافة عادة"]')); await wait(500); return 1;`,
+);
+await ev(
+  `${HELPERS} q('button[aria-label="إضافة عادة"]').click(); await waitFor(() => q('#habit-name')); q('#habit-name').focus(); return 1;`,
+);
+await sleep(2500);
+const ime = sh("adb shell dumpsys input_method").includes("mInputShown=true");
+const keyboard = await ev(`${HELPERS}
+  const add = byText('button', 'إضافة العادة');
+  const r = add?.getBoundingClientRect();
+  return { inner: innerHeight, visual: visualViewport?.height, bottom: r?.bottom, top: r?.top };`);
+log("keyboard:", JSON.stringify({ ime, ...keyboard }));
+check("the soft keyboard really opened (so this check means something)", ime);
+check(
+  "the add button stays above the keyboard",
+  keyboard?.bottom !== undefined &&
+    keyboard.bottom <= Math.min(keyboard.inner, keyboard.visual ?? 1e9) + 1,
+  `button bottom ${keyboard?.bottom?.toFixed?.(0)} of visible ${keyboard?.visual?.toFixed?.(0)}`,
+);
+await shot("08-keyboard-open");
+await ev(
+  `${HELPERS} q('button[aria-label="إغلاق"]')?.click(); document.activeElement?.blur(); await wait(500); return 1;`,
+);
+sh("adb shell settings put secure show_ime_with_hard_keyboard 0");
+await sleep(800);
+
+// 10) Back goes back inside the app (and only leaves it from the first screen).
+await ev(
+  `${HELPERS} go('/'); await waitFor(() => q('a[href^="/habit/"]')); q('a[href^="/habit/"]').click(); await waitFor(() => location.pathname.startsWith('/habit/')); return 1;`,
+);
+sh("adb shell input keyevent KEYCODE_BACK");
+await sleep(1500);
+const afterBack = await ev(`return location.pathname;`);
+check("Back from a habit page returns to Today", afterBack === "/", `now on ${afterBack}`);
+const appIsUp = sh(`adb shell pidof ada.nawy.app`).trim() !== "";
+check("the app is still running after Back", appIsUp);
+
 ws.close();
-log(`OK: ${shots.length} screenshots: ${shots.join(", ")}`);
+if (problems.length) {
+  log(`FAILED CHECKS (${problems.length}):`);
+  for (const p of problems) log(` - ${p}`);
+  process.exit(1);
+}
+log(`OK: ${shots.length} screenshots, all checks passed`);

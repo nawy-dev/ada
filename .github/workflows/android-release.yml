@@ -60,6 +60,8 @@ jobs:
           cp -r tools/android/res/. "$res/"
       - name: Reminder permissions
         run: python3 tools/android/patch_manifest.py android/app/src/main/AndroidManifest.xml
+      - name: Add the system bars plugin
+        run: python3 tools/android/patch_activity.py android tools/android/java/AdaSystemBarsPlugin.java
       - name: Version and release signing
         run: python3 tools/android/patch_gradle.py android/app/build.gradle
       - name: Copy the web app into it

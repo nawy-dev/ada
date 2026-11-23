@@ -26,6 +26,7 @@ import {
 import { todayKey } from "@/lib/date/day-key";
 import { num } from "@/lib/format/numbers";
 import { saveBackupFile } from "@/lib/native/backup-file";
+import { useIsNativeApp } from "@/lib/native/use-native-app";
 import { type ThemePreference, useTheme } from "@/lib/theme/theme-context";
 
 const themeOptions: readonly { value: ThemePreference; label: string }[] = [
@@ -55,6 +56,7 @@ function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [saveFirst, setSaveFirst] = useState(true);
   const { theme, setTheme } = useTheme();
+  const inApp = useIsNativeApp();
 
   useEffect(() => {
     void navigator.storage
@@ -188,19 +190,22 @@ function SettingsPage() {
         </div>
       </section>
 
-      <section className="mt-4 space-y-3 rounded-2xl border p-5">
-        <h2 className="font-semibold">حماية التخزين</h2>
-        <p className="text-sm text-muted-foreground">
-          {persisted
-            ? "بياناتك محمية من المسح التلقائي للمتصفح."
-            : "اطلب من المتصفح ما يمسحش بياناتك لما المساحة تقل."}
-        </p>
-        {!persisted && (
-          <Button variant="outline" onClick={onPersist}>
-            احمِ بياناتي
-          </Button>
-        )}
-      </section>
+      {/* Browser storage can be evicted when space runs low; the app's own data cannot. */}
+      {!inApp && (
+        <section className="mt-4 space-y-3 rounded-2xl border p-5">
+          <h2 className="font-semibold">حماية التخزين</h2>
+          <p className="text-sm text-muted-foreground">
+            {persisted
+              ? "بياناتك محمية من المسح التلقائي للمتصفح."
+              : "اطلب من المتصفح ما يمسحش بياناتك لما المساحة تقل."}
+          </p>
+          {!persisted && (
+            <Button variant="outline" onClick={onPersist}>
+              احمِ بياناتي
+            </Button>
+          )}
+        </section>
+      )}
 
       <ReminderDiagnostics />
 
