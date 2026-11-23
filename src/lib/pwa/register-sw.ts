@@ -1,7 +1,11 @@
+import { isNativeApp } from "@/lib/native/platform";
+
 /**
  * The only place that registers the service worker. It refuses in dev,
  * inside iframes, on Lovable preview hosts, and with ?sw=off — and cleans up
  * any stale registration there so previews never serve old cached code.
+ * Inside the Android app it does nothing at all: the files are bundled in the app (and
+ * prepare-native-web.mjs leaves sw.js out), so a worker would only fail to load with a 404.
  */
 const SW_URL = `${import.meta.env.BASE_URL}sw.js`;
 
@@ -29,6 +33,7 @@ async function unregisterAppSw(): Promise<void> {
 
 export async function registerServiceWorker(): Promise<void> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  if (isNativeApp()) return;
   let inIframe = true;
   try {
     inIframe = window.self !== window.top;

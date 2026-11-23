@@ -1,12 +1,10 @@
-import type { SystemBars, SystemBarsStyle } from "@capacitor/core";
-
 import { isNativeApp } from "./platform";
 
 export type BarTheme = "light" | "dark";
 
 /** Our own native plugin (tools/android/java); Capacitor has no call for the bar colour. */
 interface AdaSystemBarsPlugin {
-  setColors(options: { color: string }): Promise<void>;
+  setColors(options: { color: string; lightBackground: boolean }): Promise<void>;
 }
 
 /** The page background tokens in src/styles.css, used only if the real colour cannot be read. */
@@ -53,21 +51,11 @@ export function isLightColor(hex: string): boolean {
  * Plugin objects are proxies that answer to any property, `then` included, so they travel inside a
  * plain object and are looked up once (registering the same plugin twice only logs a warning).
  */
-let cached: Promise<{
-  bars: {
-    system: typeof SystemBars;
-    style: typeof SystemBarsStyle;
-    ada: AdaSystemBarsPlugin;
-  };
-}> | null = null;
+let cached: Promise<{ bars: AdaSystemBarsPlugin }> | null = null;
 
 function loadBars() {
   cached ??= import("@capacitor/core").then((core) => ({
-    bars: {
-      system: core.SystemBars,
-      style: core.SystemBarsStyle,
-      ada: core.registerPlugin<AdaSystemBarsPlugin>("AdaSystemBars"),
-    },
+    bars: core.registerPlugin<AdaSystemBarsPlugin>("AdaSystemBars"),
   }));
   return cached;
 }
@@ -77,14 +65,16 @@ function loadBars() {
  * dark or light icons to match it. Without this the phone shows its own grey behind them, which
  * follows the PHONE's theme and not the one chosen inside the app. A no-op outside the app, and it
  * never throws: a wrong bar colour must not stop the app from opening.
+ *
+ * Capacitor's own SystemBars plugin is deliberately not used: it puts the phone's grey back behind
+ * the bars every time it is called (see AdaSystemBarsPlugin.java).
  */
 export async function syncSystemBars(theme: BarTheme): Promise<void> {
   if (!isNativeApp()) return;
   const color = readPageBackground(theme);
   try {
     const { bars } = await loadBars();
-    await bars.ada.setColors({ color });
-    await bars.system.setStyle({ style: isLightColor(color) ? bars.style.Light : bars.style.Dark });
+    await bars.setColors({ color, lightBackground: isLightColor(color) });
   } catch (error) {
     console.warn("system bars were not updated", error);
   }

@@ -4,7 +4,6 @@ import { isLightColor, readPageBackground, syncSystemBars } from "./system-bars"
 
 const mocks = vi.hoisted(() => ({
   setColors: vi.fn(),
-  setStyle: vi.fn(),
   registerPlugin: vi.fn(),
 }));
 
@@ -19,8 +18,6 @@ const proxy = <T extends object>(target: T, name: string) =>
   });
 
 vi.mock("@capacitor/core", () => ({
-  SystemBars: proxy({ setStyle: mocks.setStyle }, "SystemBars"),
-  SystemBarsStyle: { Dark: "DARK", Light: "LIGHT", Default: "DEFAULT" },
   registerPlugin: mocks.registerPlugin,
 }));
 
@@ -73,7 +70,6 @@ describe("readPageBackground", () => {
 describe("syncSystemBars", () => {
   beforeEach(() => {
     mocks.setColors.mockReset().mockResolvedValue(undefined);
-    mocks.setStyle.mockReset().mockResolvedValue(undefined);
     mocks.registerPlugin
       .mockReset()
       .mockReturnValue(proxy({ setColors: mocks.setColors }, "AdaSystemBars"));
@@ -87,21 +83,18 @@ describe("syncSystemBars", () => {
   it("does nothing in a browser", async () => {
     await syncSystemBars("dark");
     expect(mocks.setColors).not.toHaveBeenCalled();
-    expect(mocks.setStyle).not.toHaveBeenCalled();
   });
 
-  it("colours the bars like the dark page and asks for light icons", async () => {
+  it("colours the bars like the dark page and asks for light icons (a dark background)", async () => {
     setNative(true);
     await syncSystemBars("dark");
-    expect(mocks.setColors).toHaveBeenCalledWith({ color: "#121212" });
-    expect(mocks.setStyle).toHaveBeenCalledWith({ style: "DARK" });
+    expect(mocks.setColors).toHaveBeenCalledWith({ color: "#121212", lightBackground: false });
   });
 
-  it("colours the bars like the light page and asks for dark icons", async () => {
+  it("colours the bars like the light page and asks for dark icons (a light background)", async () => {
     setNative(true);
     await syncSystemBars("light");
-    expect(mocks.setColors).toHaveBeenCalledWith({ color: "#F7F8FA" });
-    expect(mocks.setStyle).toHaveBeenCalledWith({ style: "LIGHT" });
+    expect(mocks.setColors).toHaveBeenCalledWith({ color: "#F7F8FA", lightBackground: true });
   });
 
   it("does not throw when the phone refuses", async () => {

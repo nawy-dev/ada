@@ -41,10 +41,18 @@ ws.onmessage = (m) => {
   }
 };
 const send = (method, params = {}) =>
-  new Promise((res) => {
+  new Promise((res, rej) => {
     id += 1;
-    pending.set(id, res);
-    ws.send(JSON.stringify({ id, method, params }));
+    const mine = id;
+    const timer = setTimeout(() => {
+      pending.delete(mine);
+      rej(new Error(`the page did not answer ${method} within 20 s`));
+    }, 20_000);
+    pending.set(mine, (msg) => {
+      clearTimeout(timer);
+      res(msg);
+    });
+    ws.send(JSON.stringify({ id: mine, method, params }));
   });
 await send("Runtime.enable");
 /** Runs `code` in the page and returns its value. */
@@ -277,9 +285,6 @@ log(
 );
 for (const line of consoleLines) log("page console:", line);
 log(sh("adb logcat -d | grep -iE 'AdaSystemBars|Capacitor/|SystemBars' | tail -25"));
-await ev(
-  `document.documentElement.classList.toggle('dark'); document.documentElement.classList.toggle('dark'); return 1;`,
-);
 const BG = `const c = document.createElement('canvas').getContext('2d');
   c.fillStyle = getComputedStyle(document.body).backgroundColor; c.fillRect(0, 0, 1, 1);
   return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3);`;
