@@ -1,5 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
 
+import { HEADER_ACTION_CLASS, HEADER_ACTION_FOCUS_CLASS } from "@/components/header-action";
 import { Icon } from "@/components/icon";
 import { hasPendingSidebarReturn } from "@/lib/navigation/sidebar-return";
 
@@ -20,7 +21,7 @@ export function PageBackButton() {
       }}
       aria-label="العودة إلى اليوم"
       title="العودة إلى اليوم"
-      className="grid size-10 shrink-0 place-items-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className={`${HEADER_ACTION_CLASS} ${HEADER_ACTION_FOCUS_CLASS}`}
     >
       <Icon name="chevron_right" className="size-5" />
     </Link>

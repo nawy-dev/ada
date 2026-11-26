@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { HEADER_ACTION_CLASS } from "@/components/header-action";
 import { Icon } from "@/components/icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,7 +102,7 @@ export function InstallAppButton() {
         onClick={() => void handleInstall()}
         aria-label="تثبيت ناوي كتطبيق"
         title="تثبيت التطبيق"
-        className="habit-toolbar-action grid size-10 place-items-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className={HEADER_ACTION_CLASS}
       >
         <Icon name="install_mobile" className="size-5" />
       </button>

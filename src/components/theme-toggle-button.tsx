@@ -1,3 +1,4 @@
+import { HEADER_ACTION_CLASS } from "@/components/header-action";
 import { Icon } from "@/components/icon";
 import { useTheme } from "@/lib/theme/theme-context";
 
@@ -16,7 +17,7 @@ export function ThemeToggleButton() {
       onClick={() => setTheme(dark ? "light" : "dark")}
       aria-label={label}
       title={label}
-      className="habit-toolbar-action grid size-10 place-items-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className={HEADER_ACTION_CLASS}
     >
       <Icon name={dark ? "light_mode" : "bedtime"} className="size-5" />
     </button>

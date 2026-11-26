@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 
-import { PageBackButton } from "@/components/page-back-button";
+import { PageHeader } from "@/components/page-header";
 import { Icon } from "@/components/icon";
 import { HabitIcon } from "@/components/habit-icon";
 import { Button } from "@/components/ui/button";
@@ -36,15 +36,7 @@ function ArchivePage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-4 pb-16 pt-5 sm:px-5">
-      <header className="flex flex-col items-start gap-3">
-        <PageBackButton />
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold">الأرشيف</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            عادات احتفظت بها بعيدًا عن قائمة اليوم.
-          </p>
-        </div>
-      </header>
+      <PageHeader title="الأرشيف" description="عادات احتفظت بها بعيدًا عن قائمة اليوم." />
 
       {habits === undefined ? (
         <div className="mt-6 h-24 animate-pulse rounded-2xl bg-muted" />

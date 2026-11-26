@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PageBackButton } from "@/components/page-back-button";
+import { PageHeader } from "@/components/page-header";
 import { HabitIcon } from "@/components/habit-icon";
 import { Icon } from "@/components/icon";
 import { Button } from "@/components/ui/button";
@@ -59,15 +59,10 @@ function TrashPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-4 pb-16 pt-5 sm:px-5">
-      <header className="flex flex-col items-start gap-3">
-        <PageBackButton />
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold">سلة المحذوفات</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            العادات هنا لمدة ٣٠ يومًا قبل حذفها نهائيًا.
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="سلة المحذوفات"
+        description="العادات هنا لمدة ٣٠ يومًا قبل حذفها نهائيًا."
+      />
 
       {habits === undefined ? (
         <div className="mt-6 h-24 animate-pulse rounded-2xl bg-muted" />

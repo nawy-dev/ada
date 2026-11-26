@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { memo, type ReactNode } from "react";
+import { HEADER_ACTION_CLASS } from "@/components/header-action";
 import { Icon, type IconName } from "@/components/icon";
 import { HabitIcon } from "@/components/habit-icon";
 import {
@@ -467,7 +468,7 @@ export function HabitViewCycleButton({
       onClick={cycleMode}
       aria-label={`طريقة العرض الحالية: ${currentOption.label}. اضغط للتغيير`}
       title={`الوضع الحالي: ${currentOption.label} — تغيير طريقة العرض`}
-      className="habit-toolbar-action grid size-10 place-items-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className={HEADER_ACTION_CLASS}
     >
       <Icon name={currentOption.icon} className="size-5" />
     </button>
