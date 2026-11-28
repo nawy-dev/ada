@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
+import { HEADER_ACTION_CLASS } from "@/components/header-action";
 import { Icon } from "@/components/icon";
 import { useSideSwipe } from "@/hooks/use-side-swipe";
 import {
@@ -261,7 +262,7 @@ export function AppSidebar({ swipeToOpen = true }: { swipeToOpen?: boolean }) {
           aria-haspopup="dialog"
           aria-expanded={open}
           title="القائمة"
-          className="habit-toolbar-action grid size-10 shrink-0 place-items-center rounded-xl border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground outline-none focus:outline-none focus-visible:outline-none"
+          className={`${HEADER_ACTION_CLASS} focus:outline-none`}
         >
           <Icon name="menu" className="size-5" />
         </button>

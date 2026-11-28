@@ -164,7 +164,7 @@ function TodayPage() {
 
   return (
     <main className="mx-auto min-h-[100dvh] max-w-2xl touch-pan-y touch-pinch-zoom px-4 pb-[calc(env(safe-area-inset-bottom)+6.5rem)] pt-5 sm:px-5">
-      <header className="mb-4 flex items-center justify-between gap-3">
+      <header className="mb-5 flex items-center justify-between gap-3">
         <div
           dir="rtl"
           role="group"
@@ -178,14 +178,27 @@ function TodayPage() {
           )}
           <InstallAppButton />
         </div>
-        <div className="flex min-w-0 items-baseline gap-2 text-end">
-          <h1 className="shrink-0 text-sm font-medium leading-none text-muted-foreground">اليوم</h1>
-          <span aria-hidden="true" className="text-muted-foreground/60">
-            ·
-          </span>
+        <div className="min-w-0 text-end">
+          <div className="flex items-center justify-end gap-2">
+            <h1 className="text-xl font-bold leading-tight tracking-tight">اليوم</h1>
+            {view && totalCount > 0 && (
+              <span
+                className={`inline-flex h-5 items-center gap-0.5 rounded-full px-2 text-[11px] font-semibold tabular-nums ${
+                  doneCount === totalCount
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-accent text-primary"
+                }`}
+                role="status"
+                aria-label={`أنجزت ${num(doneCount)} من ${num(totalCount)} عادة اليوم`}
+              >
+                {doneCount === totalCount && <Icon name="check" className="size-3" />}
+                {num(doneCount)}/{num(totalCount)}
+              </span>
+            )}
+          </div>
           <time
             dateTime={today ?? undefined}
-            className="truncate text-sm font-medium leading-none text-muted-foreground"
+            className="mt-0.5 block truncate text-xs font-medium text-muted-foreground"
           >
             {today ? dateFmt.format(parseDayKey(today)) : "\u00a0"}
           </time>

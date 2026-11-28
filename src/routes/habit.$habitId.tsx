@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { HEADER_ACTION_CLASS, HEADER_ACTION_FOCUS_CLASS } from "@/components/header-action";
 import { Icon } from "@/components/icon";
 import { HabitIcon } from "@/components/habit-icon";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -138,7 +139,7 @@ function HabitDetailPage() {
           replace
           aria-label="العودة للعادات"
           title="العودة للعادات"
-          className="habit-toolbar-action grid size-10 place-items-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted"
+          className={`${HEADER_ACTION_CLASS} ${HEADER_ACTION_FOCUS_CLASS}`}
         >
           <Icon name="chevron_right" className="size-5" />
         </Link>
@@ -150,7 +151,7 @@ function HabitDetailPage() {
             onClick={() => setEditing(true)}
             aria-label="تعديل العادة"
             title="تعديل العادة"
-            className="habit-toolbar-action grid size-10 place-items-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted"
+            className={`${HEADER_ACTION_CLASS} ${HEADER_ACTION_FOCUS_CLASS}`}
           >
             <Icon name="edit" className="size-5" />
           </button>
